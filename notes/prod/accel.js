@@ -23,7 +23,7 @@ function connectWifi () {
       connected = false;
       return;
     }
-    // wifi.save()
+
     console.log('Connected!');
     connected = true;
     setTimeout(function () {
