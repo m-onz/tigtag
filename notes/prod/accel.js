@@ -1,4 +1,7 @@
 
+pinMode(A0, 'output')
+pinMode(A1, 'output')
+
 var WIFI_NAME = "TGTG00110011";
 var WIFI_OPTIONS = { password : "01234567899999" };
 
@@ -10,10 +13,10 @@ var wifi = require("Wifi");
 var http = require("http")
 
 function connectWifi () {
-
   setInterval(function () {
     if (!connected) {
       console.log('retry wifi connection.')
+      digitalWrite(A1, 0);
       connectWifi ()
     }
   }, 60000)
@@ -21,30 +24,21 @@ function connectWifi () {
     if (err) {
       console.log("Connection error: "+err);
       connected = false;
+      digitalWrite(A1, 0);
       return;
     }
-
     console.log('Connected!');
+    digitalWrite(A1, 1);
     connected = true;
     setTimeout(function () {
       console.log('starting accellerometer')
       start ()
-      // setInterval(function () {
-      //   ping ({
-      //     a: Math.random()
-      //   })
-      // }, 5000)
     }, 5000);
   });
 }
 
-
-
-
-
 /*
 TestLSM9DS1_d.js
-30 Nov 2016
 */
 /////////////////////////////////////////
 var Regs={
@@ -652,69 +646,45 @@ function readall (W) {
   W.readMag();
   W.readTemp();
   var pirate=180.0/Math.PI;
-  console.log("Acceleration ",W.ax/16384,W.ay/16384,W.az/16384);
-  console.log("Gyro         ",W.gx,W.gy,W.gz);
-  console.log("Magnetometer ",W.mx,W.my,W.mz);
-  console.log("Temperature ",W.temperature);
-  console.log("Level", pirate*Math.atan2(W.ax,W.az),pirate*Math.atan2(W.ay,W.az));
-  console.log("heading",pirate*Math.atan2(W.mx,W.my));
-  return {
-    accel: {
-      x: W.ax/16384,
-      y: W.ay/16384,
-      z: W.az/16384
-    },
-    gryo: {
-      x: W.gx,
-      y: W.gy,
-      z: W.gz
-    },
-    magnometer: {
-      x: W.mx,
-      y: W.my,
-      z: W.mz
-    },
-    level: {
-      x: pirate*Math.atan2(W.ax,W.az),
-      y: pirate*Math.atan2(W.ay,W.az)
-    },
-    heading: pirate*Math.atan2(W.mx,W.my)
-  }
+  var precision = 1
+  var ax = parseFloat(W.ax/16384).toFixed(precision)
+  var ay = parseFloat(W.ay/16384).toFixed(precision)
+  var az = parseFloat(W.az/16384).toFixed(precision)
+  var gx = parseFloat(W.gx).toFixed(precision)
+  var gy = parseFloat(W.gy).toFixed(precision)
+  var gz = parseFloat(W.gz).toFixed(precision)
+  var mx = parseFloat(W.mx).toFixed(precision)
+  var my = parseFloat(W.my).toFixed(precision)
+  var mz = parseFloat(W.mz).toFixed(precision)
+  var lx = parseFloat(pirate*Math.atan2(W.ax,W.az)).toFixed(precision)
+  var ly = parseFloat(pirate*Math.atan2(W.ay,W.az)).toFixed(precision)
+  var h = parseFloat(pirate*Math.atan2(W.mx,W.my)).toFixed(precision)
+  return ax+','+ay+','+az+','+gx+','+gy+','+gz+','+mx+','+my+','+mz+','+lx+','+ly+','+h
 }
 
+var nn;
+
 function ping (data) {
-  // data.accel = {}
-  // data.accel.x =11
-  // data.accel.y=11
-  // data.accel.z=11
-  console.log('ping base station')
-  http.get(`http://192.168.4.1/?accel=${data.accel.x}&accely=${data.accel.y}&accelz=${data.accel.z}`, function(res) {
-    console.log("Response: ",res);
-    res.on('data', function(d) {
-      console.log("--->"+d);
+  digitalWrite(A0, 1);
+  http.get("http://192.168.4.1/?d="+data, function(res) {
+    res.on('error', console.log)
+    res.on('end', function () {
+      digitalWrite(A0, 0);
     })
-    res.on('error', function (e) {
-      console.log('error sending ping ', e)
-    })
-  })
+  });
 }
 
 function start () {
-  var usage=process.memory().usage;
-   I2C1.setup({ scl :B8, sda: B9} );
+   I2C1.setup({ scl :B6, sda: B7} );
   var W=new LSM9DS1(I2C1);
   W.init(LSM9DS1_AG,LSM9DS1_M);
   console.log(W.begin());
-  var nn=setInterval(function () {
+  nn=setInterval(function () {
       var data = readall(W);
-      console.log('ping ', data)
       ping (data)
   }, 5000);
-
-  usage=process.memory().usage-usage;
 }
 
 function onInit () {
   connectWifi ()
-  // start()
 }
