@@ -32,23 +32,23 @@ function app() {
     function () {
     console.log('ap running')
     digitalWrite(LED1, 1);
-    console.log('tigtag.csv ', fs.readFileSync('tigtag.csv'));
-    // fs.writeFileSync('tigtag.csv', '')
     http.createServer(function (req, res) {
       console.log(req.url)
       if (req.url.indexOf("?d") > -1) {
-        digitalWrite(LED2, 1);
-        try {
-          var data = req.url.split('=')[1];
-          console.log('would write ', data)
-          // fs.appendFileSync('tigtag.csv', new Date().toISOString()+','+data+'\n')
-        } catch (e) {}
-        res.end()
+         digitalWrite(LED2, 1);
+         try {
+           var data = req.url.split('=')[1];
+           fs.appendFileSync('tigtag.csv', new Date().toISOString()+','+data+'\n')
+         } catch (e) {}
+      } else if (req.url.indexOf("/tigtag.csv")) {
+        var data = E.openFile("tigtag.csv", "r");
+        res.writeHead(200, { 'Content-Type': 'text/plain' })
+        data.pipe(res)
       } else {
-        res.end ('turnips')
+        var index = E.openFile("admin.html", "r");
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        index.pipe(res)
       }
-      digitalWrite(LED2, 0);
-      digitalWrite(LED1, 0);
     }).listen(80);
   })
 }
